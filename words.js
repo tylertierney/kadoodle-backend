@@ -1,4 +1,4 @@
-export const words = [
+const words = [
   "board",
   "scratch",
   "piece",
@@ -34,3 +34,5 @@ export const words = [
   "soccer",
   "eggplant",
 ];
+
+module.exports = words;

@@ -3,6 +3,7 @@ const socketIo = require("socket.io");
 require("dotenv").config({ path: __dirname + "/.env" });
 const PORT = process.env.PORT || 8080;
 const axios = require("axios");
+const words = require("./words");
 
 const server = express()
   .use((req, res) => res.send({ response: "I am alive" }).status(200))
@@ -45,6 +46,18 @@ io.on("connection", (socket) => {
       io.to(res).emit("createLobby", players);
     });
 
+    socket.on("selectWord", (word) => {
+      let time = 90;
+      turns[turns.length - 1].word = word;
+      setInterval(() => {
+        if (time > -1) {
+          io.to(res).emit("setTimer", time);
+        }
+        time--;
+      }, 1000);
+      io.to(res).emit("selectWord", turns);
+    });
+
     socket.on("startGame", () => {
       const firstTurnPlayer =
         players[Math.floor(Math.random() * players.length)];
@@ -54,7 +67,17 @@ io.on("connection", (socket) => {
         artist: firstTurnPlayer,
         guesses: [],
         active: true,
+        possibleWords: [],
       };
+
+      let possibleWords = [];
+      for (i = 0; i < 3; i++) {
+        const index = Math.floor(Math.random() * words.length);
+        possibleWords.push(words[index]);
+        turnObj.possibleWords.push(words[index]);
+        words.splice(index, 1);
+      }
+
       turns.push(turnObj);
       io.to(res).emit("startGame", turns);
     });
