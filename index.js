@@ -99,6 +99,15 @@ io.on("connection", (socket) => {
     io.to(roomCode).emit("getCurrentGame", rooms[roomIndex]);
   });
 
+  socket.on("updatePeerId", (roomCode, playerId, peerId) => {
+    const roomIndex = getRoomIndex(roomCode);
+    const indexOfPlayer = rooms[roomIndex].players.findIndex(
+      (player) => player.id === playerId
+    );
+    rooms[roomIndex].players[indexOfPlayer].peerId = peerId;
+    io.to(roomCode).emit("updatePeerId", players);
+  });
+
   socket.on("endGame", (roomCode) => {
     const roomIndex = getRoomIndex(roomCode);
     rooms[roomIndex].turns = [];
