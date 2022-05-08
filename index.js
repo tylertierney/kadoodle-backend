@@ -64,7 +64,9 @@ io.on("connection", (socket) => {
   socket.on("startGame", (roomCode) => {
     const roomIndex = getRoomIndex(roomCode);
     const firstTurnPlayer =
-      rooms[roomIndex].players[Math.floor(Math.random() * players.length)];
+      rooms[roomIndex].players[
+        Math.floor(Math.random() * rooms[roomIndex].players.length)
+      ];
     const turnObj = {
       word: "banana",
       drawing: "",
@@ -97,15 +99,6 @@ io.on("connection", (socket) => {
     const roomIndex = getRoomIndex(roomCode);
     socket.join(roomCode);
     io.to(roomCode).emit("getCurrentGame", rooms[roomIndex]);
-  });
-
-  socket.on("updatePeerId", (roomCode, playerId, peerId) => {
-    const roomIndex = getRoomIndex(roomCode);
-    const indexOfPlayer = rooms[roomIndex].players.findIndex(
-      (player) => player.id === playerId
-    );
-    rooms[roomIndex].players[indexOfPlayer].peerId = peerId;
-    io.to(roomCode).emit("updatePeerId", players);
   });
 
   socket.on("endGame", (roomCode) => {
