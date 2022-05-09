@@ -37,6 +37,15 @@ io.on("connection", (socket) => {
     io.to(roomCode).emit("createLobby", roomObj.players);
   });
 
+  socket.on("checkIfRoomExists", (roomCode) => {
+    const roomIndex = getRoomIndex(roomCode);
+    if (roomIndex < 0) {
+      socket.emit("checkIfRoomExists", false);
+      return;
+    }
+    socket.emit("checkIfRoomExists", true);
+  });
+
   socket.on("joinLobby", (playerObj, roomCode) => {
     const roomIndex = getRoomIndex(roomCode);
     rooms[roomIndex].players.push(playerObj);
@@ -101,6 +110,10 @@ io.on("connection", (socket) => {
 
   socket.on("endGame", (roomCode) => {
     const roomIndex = getRoomIndex(roomCode);
+    if (roomIndex < 0) {
+      io.to(roomCode).emit("endGame");
+      return;
+    }
     rooms[roomIndex].turns = [];
     rooms[roomIndex].players = [];
     io.to(roomCode).emit("endGame");
