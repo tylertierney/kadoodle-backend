@@ -1,7 +1,7 @@
 const express = require("express");
 const socketIo = require("socket.io");
-// require("dotenv").config({ path: __dirname + "/.env" });
-const PORT = 8080;
+require("dotenv").config({ path: __dirname + "/.env" });
+const PORT = process.env.PORT || 8080;
 const words = require("./words");
 
 const server = express()
