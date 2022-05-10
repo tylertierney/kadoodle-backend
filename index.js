@@ -64,6 +64,9 @@ io.on("connection", (socket) => {
       time--;
     }, 1000);
     const roomIndex = getRoomIndex(roomCode);
+    if (roomIndex < 0) {
+      return;
+    }
     const turns = [...rooms[roomIndex].turns];
     turns[turns.length - 1].word = word;
     rooms[roomIndex].turns = turns;
@@ -143,6 +146,7 @@ io.on("connection", (socket) => {
     const roomIndex = getRoomIndex(roomCode);
     if (roomIndex < 0) {
       io.to(roomCode).emit("endGame");
+      socket.emit("endGame");
       return;
     }
     rooms[roomIndex].turns = [];
