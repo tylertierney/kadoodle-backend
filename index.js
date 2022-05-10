@@ -99,7 +99,17 @@ io.on("connection", (socket) => {
 
   socket.on("guess", (guess, roomCode) => {
     const roomIndex = getRoomIndex(roomCode);
+    if (roomIndex < 0) {
+      return;
+    }
     const turns = [...rooms[roomIndex].turns];
+
+    let addPoints = true;
+    rooms[roomIndex].turns[turns.length - 1].guesses.forEach((curr) => {
+      if (curr.isCorrect && curr.id === guess.id) {
+        addPoints = false;
+      }
+    });
     rooms[roomIndex].turns[turns.length - 1].guesses.push(guess);
     const guesses = rooms[roomIndex].turns[turns.length - 1].guesses;
 
@@ -111,12 +121,14 @@ io.on("connection", (socket) => {
         return acc;
       }, 0);
       const pointsToAdd = Math.floor(100 / numOfCorrectGuesses);
-      for (let player of rooms[roomIndex].players) {
-        if (player.id === guess.id) {
-          player.points += pointsToAdd;
+      if (addPoints) {
+        for (let player of rooms[roomIndex].players) {
+          if (player.id === guess.id) {
+            player.points += pointsToAdd;
+          }
         }
+        io.to(roomCode).emit("addedPoints", rooms[roomIndex].players);
       }
-      io.to(roomCode).emit("addedPoints", rooms[roomIndex].players);
     }
     io.to(roomCode).emit("guess", guess, turns);
   });
