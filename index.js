@@ -32,7 +32,6 @@ io.on("connection", (socket) => {
   socket.on("createLobby", (playerObj, roomCode) => {
     const roomObj = { roomCode: roomCode, players: [playerObj], turns: [] };
     rooms.push(roomObj);
-    console.log(rooms);
     socket.join(roomCode);
     io.to(roomCode).emit("createLobby", roomObj.players);
   });
