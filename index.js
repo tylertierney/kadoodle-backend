@@ -24,6 +24,9 @@ const getRoomIndex = (roomCode) => {
 io.on("connection", (socket) => {
   socket.on("draw", (drawingData, roomCode) => {
     const roomIndex = getRoomIndex(roomCode);
+    if (roomIndex < 0) {
+      return;
+    }
     const turnsIndex = rooms[roomIndex].turns.length - 1;
     rooms[roomIndex].turns[turnsIndex].drawing = drawingData;
     io.to(roomCode).emit("draw", drawingData, rooms[roomIndex].turns);
@@ -98,6 +101,23 @@ io.on("connection", (socket) => {
     const roomIndex = getRoomIndex(roomCode);
     const turns = [...rooms[roomIndex].turns];
     rooms[roomIndex].turns[turns.length - 1].guesses.push(guess);
+    const guesses = rooms[roomIndex].turns[turns.length - 1].guesses;
+
+    if (guess.isCorrect) {
+      const numOfCorrectGuesses = guesses.reduce((acc, curr) => {
+        if (curr.isCorrect) {
+          return acc + 1;
+        }
+        return acc;
+      }, 0);
+      const pointsToAdd = Math.floor(100 / numOfCorrectGuesses);
+      for (let player of rooms[roomIndex].players) {
+        if (player.id === guess.id) {
+          player.points += pointsToAdd;
+        }
+      }
+      io.to(roomCode).emit("addedPoints", rooms[roomIndex].players);
+    }
     io.to(roomCode).emit("guess", guess, turns);
   });
 
