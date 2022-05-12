@@ -101,6 +101,7 @@ io.on("connection", (socket) => {
       const pointsToAdd = Math.floor(100 / currentTurn.numOfCorrectGuesses());
       if (addPoints) {
         room.addPointsToPlayer(guess.id, pointsToAdd);
+        currentTurn.addPointsThisTurn(guess, pointsToAdd);
         io.to(roomCode).emit("addedPoints", room.players);
       }
     }

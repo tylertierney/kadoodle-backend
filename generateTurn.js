@@ -13,6 +13,7 @@ const generateTurn = (artist, wordList) => {
     guesses: [],
     active: true,
     possibleWords,
+    pointsThisTurn: {},
 
     setWord(newWord) {
       this.word = newWord;
@@ -42,6 +43,10 @@ const generateTurn = (artist, wordList) => {
 
     draw(drawingData) {
       this.drawing = drawingData;
+    },
+
+    addPointsThisTurn(guess, pointsToAdd) {
+      this.pointsThisTurn[guess.nickname] = pointsToAdd;
     },
   };
 };
