@@ -2,7 +2,8 @@ const express = require("express");
 const socketIo = require("socket.io");
 require("dotenv").config({ path: __dirname + "/.env" });
 const PORT = process.env.PORT || 8080;
-const words = require("./words");
+const generateRoom = require("./generateRoom");
+const generateTurn = require("./generateTurn");
 
 const server = express()
   .use((req, res) => res.send({ response: "I am alive" }).status(200))
@@ -17,31 +18,29 @@ const io = socketIo(server, {
 
 let rooms = [];
 
-const getRoomIndex = (roomCode) => {
-  return rooms.findIndex((room) => room.roomCode === roomCode);
+const getRoom = (roomCode) => {
+  return rooms.find((room) => room.roomCode === roomCode);
 };
 
 io.on("connection", (socket) => {
   socket.on("draw", (drawingData, roomCode) => {
-    const roomIndex = getRoomIndex(roomCode);
-    if (roomIndex < 0) {
-      return;
-    }
-    const turnsIndex = rooms[roomIndex].turns.length - 1;
-    rooms[roomIndex].turns[turnsIndex].drawing = drawingData;
-    io.to(roomCode).emit("draw", drawingData, rooms[roomIndex].turns);
+    const room = getRoom(roomCode);
+    if (!room) return;
+    room.getCurrentTurn().draw(drawingData);
+    io.to(roomCode).emit("draw", drawingData, room.turns);
   });
 
   socket.on("createLobby", (playerObj, roomCode) => {
-    const roomObj = { roomCode: roomCode, players: [playerObj], turns: [] };
-    rooms.push(roomObj);
+    const newRoom = generateRoom(roomCode);
+    newRoom.addPlayer(playerObj);
+    rooms.push(newRoom);
     socket.join(roomCode);
-    io.to(roomCode).emit("createLobby", roomObj.players);
+    io.to(roomCode).emit("createLobby", newRoom.players);
   });
 
   socket.on("checkIfRoomExists", (roomCode) => {
-    const roomIndex = getRoomIndex(roomCode);
-    if (roomIndex < 0) {
+    const room = getRoom(roomCode);
+    if (!room) {
       socket.emit("checkIfRoomExists", false);
       return;
     }
@@ -49,108 +48,80 @@ io.on("connection", (socket) => {
   });
 
   socket.on("joinLobby", (playerObj, roomCode) => {
-    const roomIndex = getRoomIndex(roomCode);
-    rooms[roomIndex].players.push(playerObj);
+    const room = getRoom(roomCode);
+    if (!room) return;
+    room.addPlayer(playerObj);
     socket.join(roomCode);
-    io.to(roomCode).emit("joinLobby", rooms[roomIndex].players, roomCode);
+    io.to(roomCode).emit("joinLobby", room.players, roomCode);
   });
 
   socket.on("selectWord", (word, roomCode) => {
-    let time = 90;
+    const room = getRoom(roomCode);
+    if (!room) return;
+    let time = 10;
     setInterval(() => {
+      time--;
       if (time > -1) {
         io.to(roomCode).emit("setTimer", time);
       }
-      time--;
+      if (time === 0) {
+        io.to(roomCode).emit("endTurn", room.turns);
+      }
     }, 1000);
-    const roomIndex = getRoomIndex(roomCode);
-    if (roomIndex < 0) {
-      return;
-    }
-    const turns = [...rooms[roomIndex].turns];
-    turns[turns.length - 1].word = word;
-    rooms[roomIndex].turns = turns;
-    io.to(roomCode).emit("selectWord", turns);
+    room.getCurrentTurn().setWord(word);
+    io.to(roomCode).emit("selectWord", room.turns);
   });
 
   socket.on("startGame", (roomCode) => {
-    const roomIndex = getRoomIndex(roomCode);
-    const firstTurnPlayer =
-      rooms[roomIndex].players[
-        Math.floor(Math.random() * rooms[roomIndex].players.length)
-      ];
-    const turnObj = {
-      word: "banana",
-      drawing: "",
-      artist: firstTurnPlayer,
-      guesses: [],
-      active: true,
-      possibleWords: [],
-    };
+    const room = getRoom(roomCode);
+    if (!room) return;
+    const firstTurnArtist = room.getRandomArtist();
+    const turnObj = generateTurn(firstTurnArtist, room.wordList);
+    room.addTurn(turnObj);
+    io.to(roomCode).emit("startGame", room.turns);
+  });
 
-    let possibleWords = [];
-    for (i = 0; i < 3; i++) {
-      const index = Math.floor(Math.random() * words.length);
-      possibleWords.push(words[index]);
-      turnObj.possibleWords.push(words[index]);
-      words.splice(index, 1);
-    }
-
-    rooms[roomIndex].turns.push(turnObj);
-    io.to(roomCode).emit("startGame", [turnObj]);
+  socket.on("startTurn", (roomCode) => {
+    const room = getRoom(roomCode);
+    if (!room) return;
+    const artist = room.getRandomArtist();
+    const turnObj = generateTurn(artist, room.wordList);
+    room.addTurn(turnObj);
+    io.to(roomCode).emit("startTurn", room.turns);
   });
 
   socket.on("guess", (guess, roomCode) => {
-    const roomIndex = getRoomIndex(roomCode);
-    if (roomIndex < 0) {
-      return;
-    }
-    const turns = [...rooms[roomIndex].turns];
-
-    let addPoints = true;
-    rooms[roomIndex].turns[turns.length - 1].guesses.forEach((curr) => {
-      if (curr.isCorrect && curr.id === guess.id) {
-        addPoints = false;
-      }
-    });
-    rooms[roomIndex].turns[turns.length - 1].guesses.push(guess);
-    const guesses = rooms[roomIndex].turns[turns.length - 1].guesses;
+    const room = getRoom(roomCode);
+    if (!room) return;
+    const currentTurn = room.getCurrentTurn();
+    const addPoints = !currentTurn.checkIfPlayerHasAlreadyScored(guess.id);
+    currentTurn.addGuess(guess);
 
     if (guess.isCorrect) {
-      const numOfCorrectGuesses = guesses.reduce((acc, curr) => {
-        if (curr.isCorrect) {
-          return acc + 1;
-        }
-        return acc;
-      }, 0);
-      const pointsToAdd = Math.floor(100 / numOfCorrectGuesses);
+      const pointsToAdd = Math.floor(100 / currentTurn.numOfCorrectGuesses());
       if (addPoints) {
-        for (let player of rooms[roomIndex].players) {
-          if (player.id === guess.id) {
-            player.points += pointsToAdd;
-          }
-        }
-        io.to(roomCode).emit("addedPoints", rooms[roomIndex].players);
+        room.addPointsToPlayer(guess.id, pointsToAdd);
+        io.to(roomCode).emit("addedPoints", room.players);
       }
     }
-    io.to(roomCode).emit("guess", guess, turns);
+    io.to(roomCode).emit("guess", guess, room.turns);
   });
 
   socket.on("getCurrentGame", (roomCode) => {
-    const roomIndex = getRoomIndex(roomCode);
+    const room = getRoom(roomCode);
     socket.join(roomCode);
-    io.to(roomCode).emit("getCurrentGame", rooms[roomIndex]);
+    io.to(roomCode).emit("getCurrentGame", room);
   });
 
   socket.on("endGame", (roomCode) => {
-    const roomIndex = getRoomIndex(roomCode);
-    if (roomIndex < 0) {
+    const room = getRoom(roomCode);
+    if (!room) {
       io.to(roomCode).emit("endGame");
       socket.emit("endGame");
       return;
     }
-    rooms[roomIndex].turns = [];
-    rooms[roomIndex].players = [];
+    room.turns = [];
+    room.players = [];
     io.to(roomCode).emit("endGame");
   });
 });
