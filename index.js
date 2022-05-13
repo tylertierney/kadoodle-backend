@@ -63,15 +63,20 @@ io.on("connection", (socket) => {
 
     const handleTimer = setInterval(() => {
       time--;
-      if (time > -1) {
-        io.to(roomCode).emit("setTimer", time);
-      }
       if (time === 0) {
+        currentTurn.active = false;
         io.to(roomCode).emit("endTurn", room.turns);
+        io.to(roomCode).emit("setTimer", 90);
         clearInterval(handleTimer);
+        return;
       }
       if (!currentTurn.active) {
+        io.to(roomCode).emit("setTimer", 90);
         clearInterval(handleTimer);
+        return;
+      }
+      if (time > -1) {
+        io.to(roomCode).emit("setTimer", time);
       }
     }, 1000);
 
@@ -135,6 +140,7 @@ io.on("connection", (socket) => {
       socket.emit("endGame");
       return;
     }
+    room.getCurrentTurn().active = false;
     room.turns = [];
     room.players = [];
     io.to(roomCode).emit("endGame");
