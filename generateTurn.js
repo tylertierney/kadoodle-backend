@@ -51,9 +51,11 @@ const generateTurn = (artist, wordList) => {
     },
 
     checkWhetherToEndRound(numOfPlayers) {
-      if (Object.entries(this.pointsThisTurn).length === numOfPlayers - 1) {
+      const lengthOfScoringPlayers = Object.entries(this.pointsThisTurn).length;
+      if (lengthOfScoringPlayers === numOfPlayers - 1) {
         return true;
       }
+
       return false;
     },
   };
