@@ -59,7 +59,7 @@ io.on("connection", (socket) => {
     const room = getRoom(roomCode);
     if (!room) return;
     let currentTurn = room.getCurrentTurn();
-    let time = 20;
+    let time = 90;
 
     const handleTimer = setInterval(() => {
       time--;
