@@ -58,17 +58,24 @@ io.on("connection", (socket) => {
   socket.on("selectWord", (word, roomCode) => {
     const room = getRoom(roomCode);
     if (!room) return;
-    let time = 10;
-    setInterval(() => {
+    let currentTurn = room.getCurrentTurn();
+    let time = 20;
+
+    const handleTimer = setInterval(() => {
       time--;
       if (time > -1) {
         io.to(roomCode).emit("setTimer", time);
       }
       if (time === 0) {
         io.to(roomCode).emit("endTurn", room.turns);
+        clearInterval(handleTimer);
+      }
+      if (!currentTurn.active) {
+        clearInterval(handleTimer);
       }
     }, 1000);
-    room.getCurrentTurn().setWord(word);
+
+    currentTurn.setWord(word);
     io.to(roomCode).emit("selectWord", room.turns);
   });
 
@@ -86,6 +93,9 @@ io.on("connection", (socket) => {
     if (!room) return;
     const artist = room.getRandomArtist();
     const turnObj = generateTurn(artist, room.wordList);
+    if ((room.turns.length = room.players.length - 1)) {
+      turnObj.lastTurn = true;
+    }
     room.addTurn(turnObj);
     io.to(roomCode).emit("startTurn", room.turns);
   });
@@ -102,6 +112,10 @@ io.on("connection", (socket) => {
       if (addPoints) {
         room.addPointsToPlayer(guess.id, pointsToAdd);
         currentTurn.addPointsThisTurn(guess, pointsToAdd);
+        if (currentTurn.checkWhetherToEndRound(room.players.length)) {
+          io.to(roomCode).emit("endTurn", room.turns);
+          currentTurn.active = false;
+        }
         io.to(roomCode).emit("addedPoints", room.players);
       }
     }
@@ -124,5 +138,15 @@ io.on("connection", (socket) => {
     room.turns = [];
     room.players = [];
     io.to(roomCode).emit("endGame");
+  });
+
+  socket.on("restartGame", (roomCode) => {
+    const room = getRoom(roomCode);
+    if (!room) return;
+    room.restartGame();
+    const firstTurnArtist = room.getRandomArtist();
+    const turnObj = generateTurn(firstTurnArtist, room.wordList);
+    room.addTurn(turnObj);
+    io.to(roomCode).emit("startGame", room.turns);
   });
 });

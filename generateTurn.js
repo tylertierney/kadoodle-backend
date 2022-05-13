@@ -14,6 +14,7 @@ const generateTurn = (artist, wordList) => {
     active: true,
     possibleWords,
     pointsThisTurn: {},
+    lastTurn: false,
 
     setWord(newWord) {
       this.word = newWord;
@@ -47,6 +48,13 @@ const generateTurn = (artist, wordList) => {
 
     addPointsThisTurn(guess, pointsToAdd) {
       this.pointsThisTurn[guess.nickname] = pointsToAdd;
+    },
+
+    checkWhetherToEndRound(numOfPlayers) {
+      if (Object.entries(this.pointsThisTurn).length === numOfPlayers - 1) {
+        return true;
+      }
+      return false;
     },
   };
 };

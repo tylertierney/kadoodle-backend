@@ -36,6 +36,15 @@ const generateRoom = (roomCode) => {
         }
       }
     },
+
+    restartGame() {
+      this.turns = [];
+      this.wordList = [...fullWordList];
+      for (let player of this.players) {
+        player.points = 0;
+      }
+      this.possibleArtists = [...this.players];
+    },
   };
 };
 
