@@ -33,6 +33,19 @@ const words = [
   "tennis",
   "soccer",
   "eggplant",
+  "soda",
+  "cheese",
+  "house",
+  "hair",
+  "sandwich",
+  "speaker",
+  "guitar",
+  "drums",
+  "computer",
+  "phone",
+  "piano",
+  "keyboard",
+  "couch",
 ];
 
 module.exports = words;
