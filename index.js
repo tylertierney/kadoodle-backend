@@ -61,9 +61,9 @@ io.on("connection", (socket) => {
     let currentTurn = room.getCurrentTurn();
     let time = 90;
 
-    if (room.turns.length >= room.players.length - 1) {
-      currentTurn.lastTurn = true;
-    }
+    // if (room.turns.length >= room.players.length - 1) {
+    //   currentTurn.lastTurn = true;
+    // }
 
     const handleTimer = setInterval(() => {
       time--;
@@ -80,6 +80,7 @@ io.on("connection", (socket) => {
         return;
       }
       if (time > -1) {
+        currentTurn.timeRemaining = time;
         io.to(roomCode).emit("setTimer", time);
       }
     }, 1000);
@@ -117,7 +118,9 @@ io.on("connection", (socket) => {
     currentTurn.addGuess(guess);
 
     if (guess.isCorrect) {
-      const pointsToAdd = Math.floor(100 / currentTurn.numOfCorrectGuesses());
+      const pointsToAdd =
+        Math.floor(75 / currentTurn.numOfCorrectGuesses()) +
+        currentTurn.timeRemaining;
       if (addPoints) {
         room.addPointsToPlayer(guess.id, pointsToAdd);
         currentTurn.addPointsThisTurn(guess, pointsToAdd);
