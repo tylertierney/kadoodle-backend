@@ -61,9 +61,9 @@ io.on("connection", (socket) => {
     let currentTurn = room.getCurrentTurn();
     let time = 90;
 
-    // if (room.turns.length >= room.players.length - 1) {
-    //   currentTurn.lastTurn = true;
-    // }
+    if (room.players.length === 1) {
+      currentTurn.lastTurn = true;
+    }
 
     const handleTimer = setInterval(() => {
       time--;
@@ -95,7 +95,7 @@ io.on("connection", (socket) => {
     const firstTurnArtist = room.getRandomArtist();
     const turnObj = generateTurn(firstTurnArtist, room.wordList);
     room.addTurn(turnObj);
-    io.to(roomCode).emit("startGame", room.turns);
+    io.to(roomCode).emit("startGame", room.turns, room.players);
   });
 
   socket.on("startTurn", (roomCode) => {
@@ -163,6 +163,6 @@ io.on("connection", (socket) => {
     const firstTurnArtist = room.getRandomArtist();
     const turnObj = generateTurn(firstTurnArtist, room.wordList);
     room.addTurn(turnObj);
-    io.to(roomCode).emit("startGame", room.turns);
+    io.to(roomCode).emit("startGame", room.turns, room.players);
   });
 });
