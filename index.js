@@ -147,6 +147,7 @@ io.on("connection", (socket) => {
       socket.emit("endGame");
       return;
     }
+
     const currentTurn = room.getCurrentTurn();
     if (currentTurn) {
       currentTurn.active = true;
