@@ -1,4 +1,4 @@
-const fullWordList = require("./words");
+const fullWordList = require("../words");
 
 const generateRoom = (roomCode) => {
   return {
