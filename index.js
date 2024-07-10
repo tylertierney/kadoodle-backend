@@ -5,9 +5,13 @@ const PORT = process.env.PORT || 8080;
 const generateRoom = require("./generateRoom");
 const generateTurn = require("./generateTurn");
 
-const server = express()
-  .use((req, res) => res.send({ response: "I am alive" }).status(200))
-  .listen(PORT, () => console.log(`listening on ${PORT}`));
+const app = express();
+
+app.get("/api", (req, res) => {
+  res.json("hi from /api");
+});
+
+const server = app.listen(PORT, () => console.log(`listening on ${PORT}`));
 
 const io = socketIo(server, {
   cors: {
